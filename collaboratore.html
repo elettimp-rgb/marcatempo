@@ -160,5 +160,65 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
+ <script>
+async function aggiornaStatoNotifiche() {
+  var stato = await getStatoNotifiche();
+  var elStato = document.getElementById('statoNotifiche');
+  var btnAtt = document.getElementById('btnAttivaNotifiche');
+  var btnDis = document.getElementById('btnDisattivaNotifiche');
+
+  if (!elStato) return;
+
+  if (!stato.supportato) {
+    elStato.textContent = stato.motivo || 'Non supportate';
+    if (btnAtt) btnAtt.style.display = 'none';
+    if (btnDis) btnDis.style.display = 'none';
+    return;
+  }
+
+  if (stato.attivo) {
+    elStato.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i> Attive su questo dispositivo';
+    if (btnAtt) btnAtt.style.display = 'none';
+    if (btnDis) btnDis.style.display = 'inline-block';
+  } else {
+    elStato.textContent = 'Non attive su questo dispositivo';
+    if (btnAtt) btnAtt.style.display = 'inline-block';
+    if (btnDis) btnDis.style.display = 'none';
+  }
+}
+
+async function onAttivaNotifiche() {
+  var btn = document.getElementById('btnAttivaNotifiche');
+  var orig = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Attivazione...';
+  btn.disabled = true;
+
+  var res = await attivaNotifichePush(APP.user.id);
+
+  btn.innerHTML = orig;
+  btn.disabled = false;
+
+  if (res.success) {
+    await aggiornaStatoNotifiche();
+  } else {
+    alert('Errore: ' + res.error);
+  }
+}
+
+async function onDisattivaNotifiche() {
+  var res = await disattivaNotifichePush();
+  if (res.success) {
+    await aggiornaStatoNotifiche();
+  } else {
+    alert('Errore: ' + res.error);
+  }
+}
+
+// Quando la pagina è pronta
+window.addEventListener('load', function() {
+  setTimeout(aggiornaStatoNotifiche, 1000);
+});
+</script> 
 </body>
 </html>
