@@ -97,3 +97,54 @@ self.addEventListener('fetch', function(event) {
     })
   );
 });
+
+// ============================================================
+// PUSH NOTIFICATIONS
+// ============================================================
+self.addEventListener('push', function(event) {
+  console.log('[SW] Push ricevuto');
+
+  var data = { title: 'Marcatempo', body: 'Nuovo messaggio' };
+  try {
+    if (event.data) {
+      data = event.data.json();
+    }
+  } catch (e) {
+    if (event.data) data.body = event.data.text();
+  }
+
+  var options = {
+    body: data.body || '',
+    icon: 'icon-192.png',
+    badge: 'icon-192.png',
+    vibrate: [200, 100, 200],
+    tag: 'marcatempo-notification',
+    renotify: true,
+    data: { url: data.url || '/collaboratore.html' }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Marcatempo', options)
+  );
+});
+
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  var urlToOpen = event.notification.data && event.notification.data.url
+    ? event.notification.data.url
+    : '/collaboratore.html';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(windowClients) {
+      for (var i = 0; i < windowClients.length; i++) {
+        var client = windowClients[i];
+        if (client.url.indexOf(urlToOpen) !== -1 && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});
