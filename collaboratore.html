@@ -35,8 +35,28 @@
 <div class="container-fluid mt-4 px-4">
 <div id="collabMessage" class="alert d-none"></div>
 
+  
+<div class="card mb-3" id="cardNotifiche">
+<div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+<div>
+<strong><i class="bi bi-bell-fill me-1"></i>Notifiche push</strong>
+<div class="text-muted small" id="statoNotifiche">Verifica stato...</div>
+</div>
+<div>
+<button class="btn btn-sm btn-primary" id="btnAttivaNotifiche" onclick="onAttivaNotifiche()" style="display:none">
+<i class="bi bi-bell me-1"></i> Attiva notifiche
+</button>
+<button class="btn btn-sm btn-outline-secondary" id="btnDisattivaNotifiche" onclick="onDisattivaNotifiche()" style="display:none">
+<i class="bi bi-bell-slash me-1"></i> Disattiva
+</button>
+</div>
+</div>
+</div>
+
 <div class="row g-3 mb-4">
 <div class="col-md-3 col-6"><div class="card stat-card bg-primary"><div class="card-body text-center"><h6>Ordinarie</h6><h3 id="oreOrd">0</h3></div></div></div>
+
+  
 <div class="col-md-3 col-6"><div class="card stat-card bg-success"><div class="card-body text-center"><h6>Straordinarie</h6><h3 id="oreStr">0</h3></div></div></div>
 <div class="col-md-3 col-6"><div class="card stat-card bg-info"><div class="card-body text-center"><h6>Viaggio</h6><h3 id="oreViag">0</h3></div></div></div>
 <div class="col-md-3 col-6"><div class="card stat-card bg-warning text-dark"><div class="card-body text-center"><h6>Totale Oggi</h6><h3 id="oreTot">0</h3></div></div></div>
