@@ -3,6 +3,33 @@
 // ============================================================
 const API_URL = 'https://marcatempo-api.elettimp.workers.dev';
 
+// ⚠️ SOSTITUISCI CON IL TUO ONESIGNAL APP ID
+const ONESIGNAL_APP_ID = 'INCOLLA_QUI_IL_TUO_ONESIGNAL_APP_ID';
+
+// ============================================================
+// INIZIALIZZAZIONE ONESIGNAL
+// ============================================================
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+OneSignalDeferred.push(async function(OneSignal) {
+  try {
+    await OneSignal.init({
+      appId: ONESIGNAL_APP_ID,
+      serviceWorkerPath: 'sw.js',
+      serviceWorkerParam: { scope: './' },
+      allowLocalhostAsSecureOrigin: true,
+    });
+    console.log('[OneSignal] Inizializzato correttamente');
+
+    // Se l'utente è già loggato (token in localStorage), collegalo subito
+    if (APP.user && APP.user.id) {
+      await OneSignal.login(String(APP.user.id));
+      console.log('[OneSignal] Utente ri-collegato:', APP.user.id);
+    }
+  } catch (e) {
+    console.warn('[OneSignal] Errore init:', e);
+  }
+});
+
 // ============================================================
 // STATO GLOBALE
 // ============================================================
@@ -56,6 +83,14 @@ function callApi(path, payload) {
 function doLogout() {
   if (APP.token) callApi('/api/logout', { token: APP.token });
   try { localStorage.removeItem('marcatempo_token'); } catch(e) {}
+
+  // Logout anche da OneSignal
+  try {
+    if (window.OneSignal && window.OneSignal.logout) {
+      window.OneSignal.logout();
+    }
+  } catch (e) {}
+
   APP.user = null;
   APP.token = null;
   window.location.href = 'logout.html';
@@ -63,6 +98,26 @@ function doLogout() {
 
 var PAGE = window.location.pathname.split('/').pop() || 'index.html';
 if (PAGE === '' || PAGE === '/') PAGE = 'index.html';
+
+// ============================================================
+// ONESIGNAL — COLLEGA UTENTE LOGGATO
+// ============================================================
+async function collegaUtenteOneSignal() {
+  if (!APP.user || !APP.user.id) return;
+  try {
+    if (window.OneSignal && window.OneSignal.login) {
+      await window.OneSignal.login(String(APP.user.id));
+      console.log('[OneSignal] Utente collegato:', APP.user.id);
+
+      // Aggiungi tag ruolo (opzionale, per targeting futuro)
+      if (window.OneSignal.User && window.OneSignal.User.addTag && APP.user.ruolo) {
+        await window.OneSignal.User.addTag('ruolo', APP.user.ruolo);
+      }
+    }
+  } catch (e) {
+    console.warn('[OneSignal] Errore login utente:', e);
+  }
+}
 
 // ============================================================
 // FILTRI TIMBRATURE
@@ -711,6 +766,7 @@ if (PAGE === 'admin.html') {
       hide('viewLoading');
       $('adminUserName').textContent = APP.user.nome || APP.user.username;
       initAdmin();
+      collegaUtenteOneSignal();
     });
 
     function initAdmin() {
@@ -947,13 +1003,16 @@ if (PAGE === 'admin.html') {
     window.salvaAssegnazioni = function() {
       var userId = $('assegnazioneCollaboratore').value;
       if (!userId) return;
+
       var checks = document.querySelectorAll('#assegnazioneCommesseList input[type=checkbox]');
       var idCommesse = [];
       checks.forEach(function(chk) { if (chk.checked) idCommesse.push(parseInt(chk.value)); });
+
       var btn = event.target;
       var original = btn.innerHTML;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Salvataggio...';
       btn.disabled = true;
+
       callApi('/api/assegnazioni/set', { id_utente: parseInt(userId), id_commesse: idCommesse }).then(function(r) {
         if (r && r.success) showMessage('adminMessage', 'success', r.message);
         else showMessage('adminMessage', 'danger', (r && r.error) || 'Errore');
@@ -984,6 +1043,7 @@ if (PAGE === 'collaboratore.html') {
       hide('viewLoading');
       $('collabUserName').textContent = APP.user.nome || APP.user.username;
       initCollab();
+      collegaUtenteOneSignal();
     });
 
     function initCollab() {
@@ -1192,122 +1252,3 @@ function esportaExcel(context) {
   XLSX.writeFile(wb, filename);
 }
 window.esportaExcel = esportaExcel;
-
-// ============================================================
-// BANNER INSTALLAZIONE PWA
-// ============================================================
-var deferredInstallPrompt = null;
-
-// Intercetta l'evento di installazione
-window.addEventListener('beforeinstallprompt', function(e) {
-  console.log('[PWA] beforeinstallprompt fired');
-  e.preventDefault();
-  deferredInstallPrompt = e;
-
-  // Controlla se l'utente ha già rifiutato di recente
-  var snooze = localStorage.getItem('pwa_snooze_until');
-  if (snooze && Date.now() < Number(snooze)) {
-    console.log('[PWA] Banner in snooze fino a', new Date(Number(snooze)));
-    return;
-  }
-
-  showInstallBanner();
-});
-
-// Mostra il banner
-function showInstallBanner() {
-  var banner = document.getElementById('pwaInstallBanner');
-  if (!banner) {
-    createInstallBanner();
-    banner = document.getElementById('pwaInstallBanner');
-  }
-  if (banner) {
-    setTimeout(function() {
-      banner.classList.add('show');
-    }, 2000);
-  }
-}
-
-// Crea il banner dinamicamente
-function createInstallBanner() {
-  if (document.getElementById('pwaInstallBanner')) return;
-
-  var banner = document.createElement('div');
-  banner.id = 'pwaInstallBanner';
-  banner.innerHTML = '' +
-    '<div class="pwa-banner-content">' +
-      '<div class="pwa-banner-icon">' +
-        '<img src="icon-192.png" alt="Marcatempo">' +
-      '</div>' +
-      '<div class="pwa-banner-text">' +
-        '<strong>Installa Marcatempo</strong>' +
-        '<small>Aggiungila alla schermata Home per un accesso più veloce</small>' +
-      '</div>' +
-      '<div class="pwa-banner-actions">' +
-        '<button type="button" class="pwa-btn-install" onclick="installPWA()">' +
-          '<i class="bi bi-download"></i> Installa' +
-        '</button>' +
-        '<button type="button" class="pwa-btn-dismiss" onclick="dismissInstallBanner()" title="Chiudi">' +
-          '<i class="bi bi-x-lg"></i>' +
-        '</button>' +
-      '</div>' +
-    '</div>';
-
-  document.body.appendChild(banner);
-}
-
-// Installa l'app
-function installPWA() {
-  if (!deferredInstallPrompt) {
-    alert('Per installare l\'app usa il menu del browser (⋮) → "Installa app"');
-    return;
-  }
-
-  deferredInstallPrompt.prompt();
-  deferredInstallPrompt.userChoice.then(function(choiceResult) {
-    console.log('[PWA] Scelta utente:', choiceResult.outcome);
-
-    if (choiceResult.outcome === 'accepted') {
-      console.log('[PWA] Utente ha accettato l\'installazione');
-      hideInstallBanner();
-    } else {
-      console.log('[PWA] Utente ha rifiutato l\'installazione');
-      // Snooze per 7 giorni
-      var snoozeUntil = Date.now() + (7 * 24 * 60 * 60 * 1000);
-      try {
-        localStorage.setItem('pwa_snooze_until', String(snoozeUntil));
-      } catch(e) {}
-      hideInstallBanner();
-    }
-    deferredInstallPrompt = null;
-  });
-}
-window.installPWA = installPWA;
-
-// Nascondi il banner
-function dismissInstallBanner() {
-  // Snooze per 7 giorni
-  var snoozeUntil = Date.now() + (7 * 24 * 60 * 60 * 1000);
-  try {
-    localStorage.setItem('pwa_snooze_until', String(snoozeUntil));
-  } catch(e) {}
-  hideInstallBanner();
-}
-window.dismissInstallBanner = dismissInstallBanner;
-
-function hideInstallBanner() {
-  var banner = document.getElementById('pwaInstallBanner');
-  if (banner) {
-    banner.classList.remove('show');
-    setTimeout(function() {
-      if (banner.parentNode) banner.parentNode.removeChild(banner);
-    }, 400);
-  }
-}
-
-// Nascondi il banner se l'app viene installata
-window.addEventListener('appinstalled', function() {
-  console.log('[PWA] App installata!');
-  hideInstallBanner();
-  try { localStorage.removeItem('pwa_snooze_until'); } catch(e) {}
-});
