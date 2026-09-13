@@ -7,6 +7,8 @@ const API_URL = 'https://marcatempo-api.elettimp.workers.dev';
 // STATO GLOBALE
 // ============================================================
 var APP = { user: null, token: null };
+var TIMBRATURE_CACHE = [];   // dati grezzi caricati dal server
+var COMMESSE_CACHE = [];     // per popolare i filtri dropdown
 
 // ============================================================
 // UTILITY
@@ -61,7 +63,107 @@ var PAGE = window.location.pathname.split('/').pop() || 'index.html';
 if (PAGE === '' || PAGE === '/') PAGE = 'index.html';
 
 // ============================================================
-// COSTRUZIONE RIGA TABELLA (condivisa)
+// RENDER RIGHE CON FILTRI
+// ============================================================
+function renderTimbratureTable(tbodyId, showUser, context) {
+  var tbody = $(tbodyId);
+  if (!tbody) return;
+
+  var filtered = applyFiltri(TIMBRATURE_CACHE, context);
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="14" class="text-center text-muted py-3">Nessuna timbratura trovata con i filtri attivi</td></tr>';
+    return;
+  }
+
+  var html = '';
+  filtered.forEach(function(t) {
+    html += buildRow(t, showUser);
+  });
+  tbody.innerHTML = html;
+}
+
+function applyFiltri(data, context) {
+  var fUtente = $('filtroUtente') ? $('filtroUtente').value : '';
+  var fCommessa = $('filtroCommessa') ? $('filtroCommessa').value : '';
+  var fTipo = $('filtroTipo') ? $('filtroTipo').value : '';
+  var fRicerca = $('filtroRicerca') ? $('filtroRicerca').value.trim().toLowerCase() : '';
+
+  return data.filter(function(t) {
+    // Filtro utente (solo admin)
+    if (fUtente && String(t.id_utente) !== String(fUtente)) return false;
+
+    // Filtro commessa
+    if (fCommessa && String(t.id_commessa) !== String(fCommessa)) return false;
+
+    // Filtro tipo
+    if (fTipo === 'ferie' && !t.ferie) return false;
+    if (fTipo === 'malattia' && !t.malattia) return false;
+    if (fTipo === 'straordinari') {
+      var str = (Number(t.ore_straord_festive)||0) + (Number(t.ore_straord_feriali)||0);
+      if (str <= 0) return false;
+    }
+    if (fTipo === 'viaggio' && (Number(t.ore_viaggio)||0) <= 0) return false;
+
+    // Ricerca testo (note + cliente + commessa + cantiere)
+    if (fRicerca) {
+      var searchIn = [
+        t.note || '',
+        t.cliente || '',
+        t.numero_commessa || '',
+        t.cantiere || '',
+        t.nome_utente || ''
+      ].join(' ').toLowerCase();
+      if (searchIn.indexOf(fRicerca) === -1) return false;
+    }
+
+    return true;
+  });
+}
+
+function resetFiltri(context) {
+  if ($('filtroUtente')) $('filtroUtente').value = '';
+  if ($('filtroCommessa')) $('filtroCommessa').value = '';
+  if ($('filtroTipo')) $('filtroTipo').value = '';
+  if ($('filtroRicerca')) $('filtroRicerca').value = '';
+  var meseId = context === 'admin' ? 'filtroMeseAdmin' : 'filtroMese';
+  if ($(meseId)) $(meseId).value = new Date().toISOString().slice(0,7);
+
+  if (context === 'admin') {
+    loadTimbratureAdmin();
+  } else {
+    loadTimbratureCollab();
+  }
+}
+
+function populateCommesseFilter(selectId) {
+  var sel = $(selectId);
+  if (!sel) return;
+  var current = sel.value;
+  sel.innerHTML = '<option value="">Tutte</option>';
+  COMMESSE_CACHE.forEach(function(c) {
+    sel.innerHTML += '<option value="' + c.id + '">' + escapeHtml(c.numero_commessa) + ' - ' + escapeHtml(c.cliente) + '</option>';
+  });
+  sel.value = current;
+}
+
+function populateUtentiFilter(selectId) {
+  var sel = $(selectId);
+  if (!sel) return;
+  callApi('/api/utenti').then(function(r) {
+    if (r && r.success) {
+      var current = sel.value;
+      sel.innerHTML = '<option value="">Tutti</option>';
+      r.data.forEach(function(u) {
+        sel.innerHTML += '<option value="' + u.id + '">' + escapeHtml(u.nome_completo || u.username) + '</option>';
+      });
+      sel.value = current;
+    }
+  });
+}
+
+// ============================================================
+// COSTRUZIONE RIGA (condivisa)
 // ============================================================
 function buildRow(t, showUser) {
   var tot = (Number(t.ore_ordinarie)||0) + (Number(t.ore_straord_feriali)||0) + (Number(t.ore_straord_festive)||0);
@@ -126,7 +228,15 @@ if (PAGE === 'admin.html') {
       loadUtenti();
       loadCollaboratoriPerAssegnazione();
 
+      // Popola filtri
+      populateUtentiFilter('filtroUtente');
+
+      // Event listeners filtri
       $('filtroMeseAdmin').addEventListener('change', loadTimbratureAdmin);
+      $('filtroUtente').addEventListener('change', function() { renderTimbratureTable('timbratureAdminList', true, 'admin'); });
+      $('filtroCommessa').addEventListener('change', function() { renderTimbratureTable('timbratureAdminList', true, 'admin'); });
+      $('filtroTipo').addEventListener('change', function() { renderTimbratureTable('timbratureAdminList', true, 'admin'); });
+      $('filtroRicerca').addEventListener('input', function() { renderTimbratureTable('timbratureAdminList', true, 'admin'); });
 
       $('commessaForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -165,6 +275,7 @@ if (PAGE === 'admin.html') {
             form.reset();
             loadUtenti();
             loadCollaboratoriPerAssegnazione();
+            populateUtentiFilter('filtroUtente');
           } else {
             showMessage('adminMessage', 'danger', (r && r.error) || 'Errore');
           }
@@ -178,6 +289,9 @@ if (PAGE === 'admin.html') {
       callApi('/api/commesse').then(function(r) {
         var tbody = $('commesseList');
         if (r && r.success) {
+          COMMESSE_CACHE = r.data;
+          populateCommesseFilter('filtroCommessa');
+
           if (r.data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Nessuna commessa</td></tr>';
             return;
@@ -212,20 +326,16 @@ if (PAGE === 'admin.html') {
     function loadTimbratureAdmin() {
       var mese = $('filtroMeseAdmin').value || new Date().toISOString().slice(0,7);
       callApi('/api/timbrature', { mese: mese }).then(function(r) {
-        var tbody = $('timbratureAdminList');
         if (r && r.success) {
-          if (r.data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="14" class="text-center text-muted py-3">Nessuna timbratura</td></tr>';
-            return;
-          }
-          var html = '';
-          r.data.forEach(function(t) {
-            html += buildRow(t, true);
-          });
-          tbody.innerHTML = html;
+          TIMBRATURE_CACHE = r.data;
+          renderTimbratureTable('timbratureAdminList', true, 'admin');
+        } else {
+          var tbody = $('timbratureAdminList');
+          tbody.innerHTML = '<tr><td colspan="14" class="text-center text-danger py-3">' + ((r && r.error) || 'Errore') + '</td></tr>';
         }
       });
     }
+    window.loadTimbratureAdmin = loadTimbratureAdmin;
 
     window.eliminaTimbratura = function(id) {
       if (confirm('Eliminare questa timbratura?')) {
@@ -272,6 +382,7 @@ if (PAGE === 'admin.html') {
             showMessage('adminMessage', 'success', r.message);
             loadUtenti();
             loadCollaboratoriPerAssegnazione();
+            populateUtentiFilter('filtroUtente');
           }
         });
       }
@@ -391,7 +502,11 @@ if (PAGE === 'collaboratore.html') {
       loadOggi();
       loadTimbratureCollab();
 
+      // Event listeners filtri
       $('filtroMese').addEventListener('change', loadTimbratureCollab);
+      $('filtroCommessa').addEventListener('change', function() { renderTimbratureTable('timbratureList', false, 'collab'); });
+      $('filtroTipo').addEventListener('change', function() { renderTimbratureTable('timbratureList', false, 'collab'); });
+      $('filtroRicerca').addEventListener('input', function() { renderTimbratureTable('timbratureList', false, 'collab'); });
 
       $('timbraturaForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -433,6 +548,7 @@ if (PAGE === 'collaboratore.html') {
     function loadCommesseForCollab() {
       callApi('/api/mieCommesse', { idUtente: APP.user.id }).then(function(r) {
         if (r && r.success) {
+          COMMESSE_CACHE = r.data;
           var sel = $('commessa');
           if (r.data.length === 0) {
             sel.innerHTML = '<option value="">Nessuna commessa assegnata.</option>';
@@ -442,6 +558,7 @@ if (PAGE === 'collaboratore.html') {
           r.data.forEach(function(c) {
             sel.innerHTML += '<option value="' + c.id + '">' + escapeHtml(c.numero_commessa) + ' - ' + escapeHtml(c.cliente) + '</option>';
           });
+          populateCommesseFilter('filtroCommessa');
         }
       });
     }
@@ -470,17 +587,12 @@ if (PAGE === 'collaboratore.html') {
     function loadTimbratureCollab() {
       var mese = $('filtroMese').value || new Date().toISOString().slice(0,7);
       callApi('/api/timbrature', { id_utente: APP.user.id, mese: mese }).then(function(r) {
-        var tbody = $('timbratureList');
         if (r && r.success) {
-          if (r.data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="14" class="text-center text-muted py-3">Nessuna timbratura</td></tr>';
-            return;
-          }
-          var html = '';
-          r.data.forEach(function(t) {
-            html += buildRow(t, false);
-          });
-          tbody.innerHTML = html;
+          TIMBRATURE_CACHE = r.data;
+          renderTimbratureTable('timbratureList', false, 'collab');
+        } else {
+          var tbody = $('timbratureList');
+          tbody.innerHTML = '<tr><td colspan="14" class="text-center text-danger py-3">' + ((r && r.error) || 'Errore') + '</td></tr>';
         }
       });
     }
@@ -488,7 +600,7 @@ if (PAGE === 'collaboratore.html') {
 }
 
 // ============================================================
-// ESPORTAZIONE EXCEL (.xlsx)
+// ESPORTAZIONE EXCEL
 // ============================================================
 window.esportaExcel = function(context) {
   if (typeof XLSX === 'undefined') {
@@ -496,73 +608,47 @@ window.esportaExcel = function(context) {
     return;
   }
 
-  var data = [];
   var mese, filename, sheetName;
+  var filtered;
 
   if (context === 'admin') {
-    var tbody = document.getElementById('timbratureAdminList');
-    if (!tbody) return;
-
-    var trs = tbody.querySelectorAll('tr');
-    trs.forEach(function(tr) {
-      var tds = tr.querySelectorAll('td');
-      if (tds.length < 14) return;
-      data.push([
-        tds[0].textContent.trim(),   // Data
-        tds[1].textContent.trim(),   // Nome del dipendente
-        parseFloat(tds[2].textContent.trim()) || 0,  // Ordinario
-        parseFloat(tds[3].textContent.trim()) || 0,  // Straord. Feriale
-        parseFloat(tds[4].textContent.trim()) || 0,  // Straord. Festivo
-        parseFloat(tds[5].textContent.trim()) || 0,  // Totale
-        parseFloat(tds[6].textContent.trim()) || 0,  // Ore Viaggio
-        tds[7].textContent.trim(),   // Comm. Nr.
-        tds[8].textContent.trim(),   // Committente
-        tds[9].textContent.trim(),   // Cantiere
-        tds[10].textContent.trim(),  // Note
-        tds[11].textContent.trim(),  // Ferie
-        tds[12].textContent.trim()   // Malattia
-      ]);
-    });
-
-    mese = document.getElementById('filtroMeseAdmin').value || new Date().toISOString().slice(0,7);
+    filtered = applyFiltri(TIMBRATURE_CACHE, 'admin');
+    mese = $('filtroMeseAdmin').value || new Date().toISOString().slice(0,7);
     filename = 'timbrature-admin-' + mese + '.xlsx';
     sheetName = 'Timbrature';
-
   } else {
-    var tbody = document.getElementById('timbratureList');
-    if (!tbody) return;
-
-    var trs = tbody.querySelectorAll('tr');
-    trs.forEach(function(tr) {
-      var tds = tr.querySelectorAll('td');
-      if (tds.length < 14) return;
-      data.push([
-        tds[0].textContent.trim(),
-        tds[1].textContent.trim(),
-        parseFloat(tds[2].textContent.trim()) || 0,
-        parseFloat(tds[3].textContent.trim()) || 0,
-        parseFloat(tds[4].textContent.trim()) || 0,
-        parseFloat(tds[5].textContent.trim()) || 0,
-        parseFloat(tds[6].textContent.trim()) || 0,
-        tds[7].textContent.trim(),
-        tds[8].textContent.trim(),
-        tds[9].textContent.trim(),
-        tds[10].textContent.trim(),
-        tds[11].textContent.trim(),
-        tds[12].textContent.trim()
-      ]);
-    });
-
-    mese = document.getElementById('filtroMese').value || new Date().toISOString().slice(0,7);
+    filtered = applyFiltri(TIMBRATURE_CACHE, 'collab');
+    mese = $('filtroMese').value || new Date().toISOString().slice(0,7);
     var nomeUtente = (APP.user.nome || APP.user.username || 'utente').replace(/\s+/g, '-').toLowerCase();
     filename = 'timbrature-' + nomeUtente + '-' + mese + '.xlsx';
     sheetName = 'Le mie timbrature';
   }
 
-  if (data.length === 0) {
-    alert('Nessun dato da esportare.');
+  if (filtered.length === 0) {
+    alert('Nessun dato da esportare con i filtri attivi.');
     return;
   }
+
+  var data = [];
+  filtered.forEach(function(t) {
+    var tot = (Number(t.ore_ordinarie)||0) + (Number(t.ore_straord_feriali)||0) + (Number(t.ore_straord_festive)||0);
+    var nomeDip = context === 'admin' ? (t.nome_utente || '-') : ((APP.user.nome || APP.user.username) || '-');
+    data.push([
+      t.data_lavoro || '-',
+      nomeDip,
+      Number(t.ore_ordinarie) || 0,
+      Number(t.ore_straord_feriali) || 0,
+      Number(t.ore_straord_festive) || 0,
+      tot,
+      Number(t.ore_viaggio) || 0,
+      t.numero_commessa || '-',
+      t.cliente || '-',
+      t.cantiere || '-',
+      t.note || '',
+      t.ferie ? 'Sì' : '',
+      t.malattia ? 'Sì' : ''
+    ]);
+  });
 
   var headers = ['Data', 'Nome del dipendente', 'Ordinario', 'Straord. Feriale', 'Straord. Festivo', 'Totale', 'Ore Viaggio', 'Comm. Nr.', 'Committente', 'Cantiere', 'Note', 'Ferie', 'Malattia'];
 
@@ -570,22 +656,11 @@ window.esportaExcel = function(context) {
   var ws = XLSX.utils.aoa_to_sheet(wsData);
 
   ws['!cols'] = [
-    { wch: 12 },  // Data
-    { wch: 22 },  // Nome del dipendente
-    { wch: 11 },  // Ordinario
-    { wch: 15 },  // Straord. Feriale
-    { wch: 15 },  // Straord. Festivo
-    { wch: 10 },  // Totale
-    { wch: 12 },  // Ore Viaggio
-    { wch: 12 },  // Comm. Nr.
-    { wch: 22 },  // Committente
-    { wch: 22 },  // Cantiere
-    { wch: 40 },  // Note
-    { wch: 8 },   // Ferie
-    { wch: 10 }   // Malattia
+    { wch: 12 }, { wch: 22 }, { wch: 11 }, { wch: 15 }, { wch: 15 },
+    { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 22 }, { wch: 22 },
+    { wch: 40 }, { wch: 8 }, { wch: 10 }
   ];
 
-  // Applica stile all'intestazione
   var range = XLSX.utils.decode_range(ws['!ref']);
   for (var C = range.s.c; C <= range.e.c; ++C) {
     var addr = XLSX.utils.encode_cell({ r: 0, c: C });
@@ -600,7 +675,6 @@ window.esportaExcel = function(context) {
   var wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
-  // Foglio riepilogo
   var totOrd = 0, totStrF = 0, totStrFe = 0, totTot = 0, totViag = 0;
   data.forEach(function(row) {
     totOrd   += row[2];
@@ -624,7 +698,6 @@ window.esportaExcel = function(context) {
   ];
   var ws2 = XLSX.utils.aoa_to_sheet(riepilogoData);
   ws2['!cols'] = [{ wch: 22 }, { wch: 15 }];
-
   ['A1', 'A5', 'A6', 'A7', 'A8', 'A10'].forEach(function(addr) {
     if (ws2[addr]) ws2[addr].s = { font: { bold: true } };
   });
