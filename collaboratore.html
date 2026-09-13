@@ -54,13 +54,45 @@
 </div>
 </div>
 
+<div class="card mb-3">
+<div class="card-header bg-light"><i class="bi bi-funnel me-1"></i>Filtri</div>
+<div class="card-body">
+<div class="row g-2 align-items-end">
+<div class="col-md-3">
+<label class="form-label small text-muted mb-1">Mese</label>
+<input type="month" id="filtroMese" class="form-control form-control-sm">
+</div>
+<div class="col-md-3">
+<label class="form-label small text-muted mb-1">Commessa</label>
+<select id="filtroCommessa" class="form-select form-select-sm">
+<option value="">Tutte</option>
+</select>
+</div>
+<div class="col-md-2">
+<label class="form-label small text-muted mb-1">Tipo</label>
+<select id="filtroTipo" class="form-select form-select-sm">
+<option value="">Tutte</option>
+<option value="ferie">Solo Ferie</option>
+<option value="malattia">Solo Malattia</option>
+<option value="straordinari">Con Straordinari</option>
+<option value="viaggio">Con Viaggio</option>
+</select>
+</div>
+<div class="col-md-2">
+<label class="form-label small text-muted mb-1">Cerca</label>
+<input type="text" id="filtroRicerca" class="form-control form-control-sm" placeholder="Cerca...">
+</div>
+<div class="col-md-2">
+<button class="btn btn-sm btn-secondary w-100" onclick="resetFiltri('collab')"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+</div>
+</div>
+</div>
+</div>
+
 <div class="card">
 <div class="card-header bg-light d-flex justify-content-between align-items-center">
 <span><i class="bi bi-list-ul me-1"></i>Le tue timbrature</span>
-<div class="d-flex gap-2 align-items-center">
-<input type="month" id="filtroMese" class="form-control form-control-sm w-auto">
 <button class="btn btn-sm btn-outline-success" onclick="esportaExcel('collab')"><i class="bi bi-file-earmark-excel"></i> Esporta Excel</button>
-</div>
 </div>
 <div class="card-body p-0">
 <div class="table-responsive">
