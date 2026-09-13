@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Collaboratore - Marcatempo</title>
+<title>Admin - Marcatempo</title>
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4361ee">
@@ -15,17 +15,18 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 <link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
-<div id="viewCollab" class="hidden">
+<div id="viewAdmin" class="hidden">
 <nav class="navbar navbar-dark bg-primary shadow-sm">
 <div class="container-fluid">
-<span class="navbar-brand"><i class="bi bi-clock-history me-2"></i>Marcatempo</span>
+<span class="navbar-brand"><i class="bi bi-clock-history me-2"></i>Marcatempo — Admin</span>
 <div class="d-flex align-items-center">
 <span class="text-white me-3 small">
-<i class="bi bi-person-circle"></i> <span id="collabUserName">—</span>
-<span class="badge bg-light text-primary ms-1">collaboratore</span>
+<i class="bi bi-person-circle"></i> <span id="adminUserName">—</span>
+<span class="badge bg-danger ms-1">admin</span>
 </span>
 <button class="btn btn-outline-light btn-sm" onclick="doLogout()"><i class="bi bi-box-arrow-right"></i> Esci</button>
 </div>
@@ -33,44 +34,58 @@
 </nav>
 
 <div class="container-fluid mt-4 px-4">
-<div id="collabMessage" class="alert d-none"></div>
+<div id="adminMessage" class="alert d-none"></div>
 
-<div class="row g-3 mb-4">
-<div class="col-md-3 col-6"><div class="card stat-card bg-primary"><div class="card-body text-center"><h6>Ordinarie</h6><h3 id="oreOrd">0</h3></div></div></div>
-<div class="col-md-3 col-6"><div class="card stat-card bg-success"><div class="card-body text-center"><h6>Straordinarie</h6><h3 id="oreStr">0</h3></div></div></div>
-<div class="col-md-3 col-6"><div class="card stat-card bg-info"><div class="card-body text-center"><h6>Viaggio</h6><h3 id="oreViag">0</h3></div></div></div>
-<div class="col-md-3 col-6"><div class="card stat-card bg-warning text-dark"><div class="card-body text-center"><h6>Totale Oggi</h6><h3 id="oreTot">0</h3></div></div></div>
-</div>
+<ul class="nav nav-tabs mb-3">
+<li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabCommesse"><i class="bi bi-briefcase me-1"></i>Commesse</a></li>
+<li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabTimbrature"><i class="bi bi-clock me-1"></i>Timbrature</a></li>
+<li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabUtenti"><i class="bi bi-people me-1"></i>Utenti</a></li>
+<li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabAssegnazioni"><i class="bi bi-link-45deg me-1"></i>Assegnazioni</a></li>
+<li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabRiepilogo"><i class="bi bi-bar-chart me-1"></i>Riepilogo</a></li>
+</ul>
 
+<div class="tab-content">
+
+<div class="tab-pane fade show active" id="tabCommesse">
 <div class="card mb-4">
-<div class="card-header bg-success text-white"><i class="bi bi-plus-circle me-1"></i>Nuova Timbratura</div>
+<div class="card-header bg-success text-white"><i class="bi bi-plus-circle me-1"></i>Nuova Commessa</div>
 <div class="card-body">
-<form id="timbraturaForm" class="row g-3">
-<div class="col-12">
-<label class="form-label small text-muted">Commessa</label>
-<select name="id_commessa" id="commessa" class="form-select" required><option value="">Seleziona commessa...</option></select>
-</div>
-<div class="col-md-3 col-6"><label class="form-label small text-muted">Ore ordinarie (max 8)</label><input type="number" step="0.5" min="0" max="8" name="ore_ordinarie" class="form-control" value="0"></div>
-<div class="col-md-3 col-6"><label class="form-label small text-muted">Str. festive</label><input type="number" step="0.5" min="0" name="ore_straord_festive" class="form-control" value="0"></div>
-<div class="col-md-3 col-6"><label class="form-label small text-muted">Str. feriali</label><input type="number" step="0.5" min="0" name="ore_straord_feriali" class="form-control" value="0"></div>
-<div class="col-md-3 col-6"><label class="form-label small text-muted">Viaggio</label><input type="number" step="0.5" min="0" name="ore_viaggio" class="form-control" value="0"></div>
-<div class="col-md-6"><div class="form-check form-switch"><input type="checkbox" name="ferie" class="form-check-input" id="ferie"><label class="form-check-label" for="ferie">Ferie</label></div></div>
-<div class="col-md-6"><div class="form-check form-switch"><input type="checkbox" name="malattia" class="form-check-input" id="malattia"><label class="form-check-label" for="malattia">Malattia</label></div></div>
-<div class="col-12"><textarea name="note" class="form-control" rows="2" placeholder="Note..."></textarea></div>
-<div class="col-12"><button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Salva Timbratura</button></div>
+<form id="commessaForm" class="row g-2">
+<div class="col-md-3"><input type="text" name="numero_commessa" class="form-control" placeholder="Numero" required></div>
+<div class="col-md-3"><input type="text" name="cliente" class="form-control" placeholder="Cliente" required></div>
+<div class="col-md-3"><input type="text" name="cantiere" class="form-control" placeholder="Cantiere" required></div>
+<div class="col-md-3"><input type="text" name="descrizione" class="form-control" placeholder="Descrizione"></div>
+<div class="col-12"><button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Aggiungi Commessa</button></div>
 </form>
 </div>
 </div>
+<div class="card">
+<div class="card-header bg-light">Elenco Commesse</div>
+<div class="card-body p-0">
+<div class="table-responsive">
+<table class="table table-hover mb-0 align-middle">
+<thead class="table-light"><tr><th>ID</th><th>Numero</th><th>Cliente</th><th>Cantiere</th><th></th></tr></thead>
+<tbody id="commesseList"><tr><td colspan="5" class="text-center text-muted py-3">Caricamento...</td></tr></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
 
+<div class="tab-pane fade" id="tabTimbrature">
 <div class="card mb-3">
 <div class="card-header bg-light"><i class="bi bi-funnel me-1"></i>Filtri</div>
 <div class="card-body">
 <div class="row g-2 align-items-end">
-<div class="col-md-3">
+<div class="col-md-2">
 <label class="form-label small text-muted mb-1">Mese</label>
-<input type="month" id="filtroMese" class="form-control form-control-sm">
+<input type="month" id="filtroMeseAdmin" class="form-control form-control-sm">
 </div>
-<div class="col-md-3">
+<div class="col-md-2">
+<label class="form-label small text-muted mb-1">Utente</label>
+<select id="filtroUtente" class="form-select form-select-sm"><option value="">Tutti</option></select>
+</div>
+<div class="col-md-2">
 <label class="form-label small text-muted mb-1">Commessa</label>
 <select id="filtroCommessa" class="form-select form-select-sm"><option value="">Tutte</option></select>
 </div>
@@ -85,20 +100,19 @@
 </select>
 </div>
 <div class="col-md-2">
-<label class="form-label small text-muted mb-1">Cerca</label>
+<label class="form-label small text-muted mb-1">Cerca (note/cliente)</label>
 <input type="text" id="filtroRicerca" class="form-control form-control-sm" placeholder="Cerca...">
 </div>
 <div class="col-md-2">
-<button class="btn btn-sm btn-secondary w-100" onclick="resetFiltri('collab')"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+<button class="btn btn-sm btn-secondary w-100" onclick="resetFiltri('admin')"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
 </div>
 </div>
 </div>
 </div>
-
 <div class="card">
 <div class="card-header bg-light d-flex justify-content-between align-items-center">
-<span><i class="bi bi-list-ul me-1"></i>Le tue timbrature</span>
-<button class="btn btn-sm btn-outline-success" onclick="esportaExcel('collab')"><i class="bi bi-file-earmark-excel"></i> Esporta Excel</button>
+<span><i class="bi bi-list-ul me-1"></i>Elenco Timbrature</span>
+<button class="btn btn-sm btn-outline-success" onclick="esportaExcel('admin')"><i class="bi bi-file-earmark-excel"></i> Esporta Excel</button>
 </div>
 <div class="card-body p-0">
 <div class="table-responsive">
@@ -110,14 +124,145 @@
 <th>Committente</th><th>Cantiere</th><th>Note</th><th>Ferie</th><th>Malattia</th><th></th>
 </tr>
 </thead>
-<tbody id="timbratureList">
+<tbody id="timbratureAdminList">
 <tr><td colspan="14" class="text-center text-muted py-3">Caricamento...</td></tr>
 </tbody>
 </table>
 </div>
 </div>
 </div>
+</div>
 
+<div class="tab-pane fade" id="tabUtenti">
+<div class="card mb-4">
+<div class="card-header bg-success text-white"><i class="bi bi-person-plus me-1"></i>Nuovo Utente</div>
+<div class="card-body">
+<form id="utenteForm" class="row g-2">
+<div class="col-md-3"><input type="text" name="username" class="form-control" placeholder="Username" required></div>
+<div class="col-md-3"><input type="text" name="nome_completo" class="form-control" placeholder="Nome completo" required></div>
+<div class="col-md-2"><input type="password" name="password" class="form-control" placeholder="Password" required></div>
+<div class="col-md-2"><input type="email" name="email" class="form-control" placeholder="Email"></div>
+<div class="col-md-2"><select name="ruolo" class="form-select"><option value="collaboratore">Collaboratore</option><option value="admin">Admin</option></select></div>
+<div class="col-12"><button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Crea Utente</button></div>
+</form>
+</div>
+</div>
+<div class="card">
+<div class="card-header bg-light">Elenco Utenti</div>
+<div class="card-body p-0">
+<div class="table-responsive">
+<table class="table table-hover mb-0 align-middle">
+<thead class="table-light"><tr><th>ID</th><th>Username</th><th>Nome</th><th>Ruolo</th><th></th></tr></thead>
+<tbody id="utentiList"><tr><td colspan="5" class="text-center text-muted py-3">Caricamento...</td></tr></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<div class="tab-pane fade" id="tabAssegnazioni">
+<div class="card">
+<div class="card-header bg-light"><i class="bi bi-link-45deg me-1"></i>Assegna commesse ai collaboratori</div>
+<div class="card-body">
+<p class="text-muted small mb-3">Seleziona un collaboratore per assegnargli le commesse. Il collaboratore vedra <b>solo</b> le commesse assegnate.</p>
+<div class="row g-3">
+<div class="col-md-4">
+<label class="form-label fw-semibold">Collaboratore</label>
+<select id="assegnazioneCollaboratore" class="form-select"><option value="">Seleziona collaboratore...</option></select>
+</div>
+</div>
+<div id="assegnazioneBox" class="mt-4 hidden">
+<h6 class="mb-3">Commesse assegnate a <span id="assegnazioneNome" class="text-primary"></span></h6>
+<div id="assegnazioneCommesseList" class="row g-2"></div>
+<div class="mt-3"><button class="btn btn-primary" onclick="salvaAssegnazioni()"><i class="bi bi-save me-1"></i>Salva assegnazioni</button></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="tab-pane fade" id="tabRiepilogo">
+  <div class="card mb-3">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-calendar-range me-1"></i>Riepilogo mensile</span>
+      <div class="d-flex gap-2 align-items-center">
+        <input type="month" id="riepilogoMese" class="form-control form-control-sm w-auto">
+        <button class="btn btn-sm btn-outline-success" onclick="esportaRiepilogoExcel()"><i class="bi bi-file-earmark-excel"></i> Esporta Excel</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+          <div class="card stat-card bg-primary"><div class="card-body text-center">
+            <h6>Ore Totali</h6><h3 id="ripTotOre">0</h3>
+          </div></div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="card stat-card bg-success"><div class="card-body text-center">
+            <h6>Ordinarie</h6><h3 id="ripTotOrd">0</h3>
+          </div></div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="card stat-card bg-warning text-dark"><div class="card-body text-center">
+            <h6>Straordinarie</h6><h3 id="ripTotStr">0</h3>
+          </div></div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="card stat-card bg-info"><div class="card-body text-center">
+            <h6>Viaggio</h6><h3 id="ripTotViag">0</h3>
+          </div></div>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header bg-light"><i class="bi bi-bar-chart me-1"></i>Ore per dipendente</div>
+        <div class="card-body">
+          <canvas id="graficoOre" height="80"></canvas>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header bg-light"><i class="bi bi-people me-1"></i>Riepilogo per collaboratore</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Dipendente</th><th>Ordinario</th><th>Str. Feriale</th><th>Str. Festivo</th>
+                  <th>Viaggio</th><th>Ferie (gg)</th><th>Malattia (gg)</th><th>Totale ore</th>
+                </tr>
+              </thead>
+              <tbody id="riepilogoCollabList">
+                <tr><td colspan="8" class="text-center text-muted py-3">Caricamento...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header bg-light"><i class="bi bi-briefcase me-1"></i>Riepilogo per commessa</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Comm. Nr.</th><th>Committente</th><th>Cantiere</th>
+                  <th>Ordinario</th><th>Straordinari</th><th>Viaggio</th><th>Totale ore</th>
+                </tr>
+              </thead>
+              <tbody id="riepilogoCommList">
+                <tr><td colspan="7" class="text-center text-muted py-3">Caricamento...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
 </div>
 
 <div id="viewLoading" style="min-height:100vh;display:flex;align-items:center;justify-content:center">
