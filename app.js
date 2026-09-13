@@ -13,11 +13,12 @@ window.OneSignalDeferred = window.OneSignalDeferred || [];
 OneSignalDeferred.push(async function(OneSignal) {
   try {
     await OneSignal.init({
-      appId: ONESIGNAL_APP_ID,
-      serviceWorkerPath: 'sw.js',
-      serviceWorkerParam: { scope: './' },
-      allowLocalhostAsSecureOrigin: true,
-    });
+  appId: ONESIGNAL_APP_ID,
+  serviceWorkerPath: 'OneSignalSDKWorker.js',
+  serviceWorkerParam: { scope: './' },
+  allowLocalhostAsSecureOrigin: true,
+  notifyButton: { enable: false },
+});
     console.log('[OneSignal] Inizializzato correttamente');
 
     // Se l'utente è già loggato (token in localStorage), collegalo subito
