@@ -1192,3 +1192,122 @@ function esportaExcel(context) {
   XLSX.writeFile(wb, filename);
 }
 window.esportaExcel = esportaExcel;
+
+// ============================================================
+// BANNER INSTALLAZIONE PWA
+// ============================================================
+var deferredInstallPrompt = null;
+
+// Intercetta l'evento di installazione
+window.addEventListener('beforeinstallprompt', function(e) {
+  console.log('[PWA] beforeinstallprompt fired');
+  e.preventDefault();
+  deferredInstallPrompt = e;
+
+  // Controlla se l'utente ha già rifiutato di recente
+  var snooze = localStorage.getItem('pwa_snooze_until');
+  if (snooze && Date.now() < Number(snooze)) {
+    console.log('[PWA] Banner in snooze fino a', new Date(Number(snooze)));
+    return;
+  }
+
+  showInstallBanner();
+});
+
+// Mostra il banner
+function showInstallBanner() {
+  var banner = document.getElementById('pwaInstallBanner');
+  if (!banner) {
+    createInstallBanner();
+    banner = document.getElementById('pwaInstallBanner');
+  }
+  if (banner) {
+    setTimeout(function() {
+      banner.classList.add('show');
+    }, 2000);
+  }
+}
+
+// Crea il banner dinamicamente
+function createInstallBanner() {
+  if (document.getElementById('pwaInstallBanner')) return;
+
+  var banner = document.createElement('div');
+  banner.id = 'pwaInstallBanner';
+  banner.innerHTML = '' +
+    '<div class="pwa-banner-content">' +
+      '<div class="pwa-banner-icon">' +
+        '<img src="icon-192.png" alt="Marcatempo">' +
+      '</div>' +
+      '<div class="pwa-banner-text">' +
+        '<strong>Installa Marcatempo</strong>' +
+        '<small>Aggiungila alla schermata Home per un accesso più veloce</small>' +
+      '</div>' +
+      '<div class="pwa-banner-actions">' +
+        '<button type="button" class="pwa-btn-install" onclick="installPWA()">' +
+          '<i class="bi bi-download"></i> Installa' +
+        '</button>' +
+        '<button type="button" class="pwa-btn-dismiss" onclick="dismissInstallBanner()" title="Chiudi">' +
+          '<i class="bi bi-x-lg"></i>' +
+        '</button>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(banner);
+}
+
+// Installa l'app
+function installPWA() {
+  if (!deferredInstallPrompt) {
+    alert('Per installare l\'app usa il menu del browser (⋮) → "Installa app"');
+    return;
+  }
+
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(function(choiceResult) {
+    console.log('[PWA] Scelta utente:', choiceResult.outcome);
+
+    if (choiceResult.outcome === 'accepted') {
+      console.log('[PWA] Utente ha accettato l\'installazione');
+      hideInstallBanner();
+    } else {
+      console.log('[PWA] Utente ha rifiutato l\'installazione');
+      // Snooze per 7 giorni
+      var snoozeUntil = Date.now() + (7 * 24 * 60 * 60 * 1000);
+      try {
+        localStorage.setItem('pwa_snooze_until', String(snoozeUntil));
+      } catch(e) {}
+      hideInstallBanner();
+    }
+    deferredInstallPrompt = null;
+  });
+}
+window.installPWA = installPWA;
+
+// Nascondi il banner
+function dismissInstallBanner() {
+  // Snooze per 7 giorni
+  var snoozeUntil = Date.now() + (7 * 24 * 60 * 60 * 1000);
+  try {
+    localStorage.setItem('pwa_snooze_until', String(snoozeUntil));
+  } catch(e) {}
+  hideInstallBanner();
+}
+window.dismissInstallBanner = dismissInstallBanner;
+
+function hideInstallBanner() {
+  var banner = document.getElementById('pwaInstallBanner');
+  if (banner) {
+    banner.classList.remove('show');
+    setTimeout(function() {
+      if (banner.parentNode) banner.parentNode.removeChild(banner);
+    }, 400);
+  }
+}
+
+// Nascondi il banner se l'app viene installata
+window.addEventListener('appinstalled', function() {
+  console.log('[PWA] App installata!');
+  hideInstallBanner();
+  try { localStorage.removeItem('pwa_snooze_until'); } catch(e) {}
+});
