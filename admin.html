@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Collaboratore - Marcatempo</title>
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4361ee">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Marcatempo">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="viewCollab" class="hidden">
+<nav class="navbar navbar-dark bg-primary shadow-sm">
+<div class="container-fluid">
+<span class="navbar-brand"><i class="bi bi-clock-history me-2"></i>Marcatempo</span>
+<div class="d-flex align-items-center">
+<span class="text-white me-3 small">
+<i class="bi bi-person-circle"></i> <span id="collabUserName">—</span>
+<span class="badge bg-light text-primary ms-1">collaboratore</span>
+</span>
+<button class="btn btn-outline-light btn-sm" onclick="doLogout()"><i class="bi bi-box-arrow-right"></i> Esci</button>
+</div>
+</div>
+</nav>
+
+<div class="container-fluid mt-4 px-4">
+<div id="collabMessage" class="alert d-none"></div>
+
+<div class="row g-3 mb-4">
+<div class="col-md-3 col-6"><div class="card stat-card bg-primary"><div class="card-body text-center"><h6>Ordinarie</h6><h3 id="oreOrd">0</h3></div></div></div>
+<div class="col-md-3 col-6"><div class="card stat-card bg-success"><div class="card-body text-center"><h6>Straordinarie</h6><h3 id="oreStr">0</h3></div></div></div>
+<div class="col-md-3 col-6"><div class="card stat-card bg-info"><div class="card-body text-center"><h6>Viaggio</h6><h3 id="oreViag">0</h3></div></div></div>
+<div class="col-md-3 col-6"><div class="card stat-card bg-warning text-dark"><div class="card-body text-center"><h6>Totale Oggi</h6><h3 id="oreTot">0</h3></div></div></div>
+</div>
+
+<div class="card mb-4">
+<div class="card-header bg-success text-white"><i class="bi bi-plus-circle me-1"></i>Nuova Timbratura</div>
+<div class="card-body">
+<form id="timbraturaForm" class="row g-3">
+<div class="col-12">
+<label class="form-label small text-muted">Commessa</label>
+<select name="id_commessa" id="commessa" class="form-select" required><option value="">Seleziona commessa...</option></select>
+</div>
+<div class="col-md-3 col-6"><label class="form-label small text-muted">Ore ordinarie (max 8)</label><input type="number" step="0.5" min="0" max="8" name="ore_ordinarie" class="form-control" value="0"></div>
+<div class="col-md-3 col-6"><label class="form-label small text-muted">Str. festive</label><input type="number" step="0.5" min="0" name="ore_straord_festive" class="form-control" value="0"></div>
+<div class="col-md-3 col-6"><label class="form-label small text-muted">Str. feriali</label><input type="number" step="0.5" min="0" name="ore_straord_feriali" class="form-control" value="0"></div>
+<div class="col-md-3 col-6"><label class="form-label small text-muted">Viaggio</label><input type="number" step="0.5" min="0" name="ore_viaggio" class="form-control" value="0"></div>
+<div class="col-md-6"><div class="form-check form-switch"><input type="checkbox" name="ferie" class="form-check-input" id="ferie"><label class="form-check-label" for="ferie">Ferie</label></div></div>
+<div class="col-md-6"><div class="form-check form-switch"><input type="checkbox" name="malattia" class="form-check-input" id="malattia"><label class="form-check-label" for="malattia">Malattia</label></div></div>
+<div class="col-12"><textarea name="note" class="form-control" rows="2" placeholder="Note..."></textarea></div>
+<div class="col-12"><button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Salva Timbratura</button></div>
+</form>
+</div>
+</div>
+
+<div class="card mb-3">
+<div class="card-header bg-light"><i class="bi bi-funnel me-1"></i>Filtri</div>
+<div class="card-body">
+<div class="row g-2 align-items-end">
+<div class="col-md-3">
+<label class="form-label small text-muted mb-1">Mese</label>
+<input type="month" id="filtroMese" class="form-control form-control-sm">
+</div>
+<div class="col-md-3">
+<label class="form-label small text-muted mb-1">Commessa</label>
+<select id="filtroCommessa" class="form-select form-select-sm"><option value="">Tutte</option></select>
+</div>
+<div class="col-md-2">
+<label class="form-label small text-muted mb-1">Tipo</label>
+<select id="filtroTipo" class="form-select form-select-sm">
+<option value="">Tutte</option>
+<option value="ferie">Solo Ferie</option>
+<option value="malattia">Solo Malattia</option>
+<option value="straordinari">Con Straordinari</option>
+<option value="viaggio">Con Viaggio</option>
+</select>
+</div>
+<div class="col-md-2">
+<label class="form-label small text-muted mb-1">Cerca</label>
+<input type="text" id="filtroRicerca" class="form-control form-control-sm" placeholder="Cerca...">
+</div>
+<div class="col-md-2">
+<button class="btn btn-sm btn-secondary w-100" onclick="resetFiltri('collab')"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-header bg-light d-flex justify-content-between align-items-center">
+<span><i class="bi bi-list-ul me-1"></i>Le tue timbrature</span>
+<button class="btn btn-sm btn-outline-success" onclick="esportaExcel('collab')"><i class="bi bi-file-earmark-excel"></i> Esporta Excel</button>
+</div>
+<div class="card-body p-0">
+<div class="table-responsive">
+<table class="table table-hover mb-0 align-middle">
+<thead class="table-light">
+<tr>
+<th>Data</th><th>Nome del dipendente</th><th>Ordinario</th><th>Straord. Feriale</th>
+<th>Straord. Festivo</th><th>Totale</th><th>Ore Viaggio</th><th>Comm. Nr.</th>
+<th>Committente</th><th>Cantiere</th><th>Note</th><th>Ferie</th><th>Malattia</th><th></th>
+</tr>
+</thead>
+<tbody id="timbratureList">
+<tr><td colspan="14" class="text-center text-muted py-3">Caricamento...</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+</div>
+
+<div id="viewLoading" style="min-height:100vh;display:flex;align-items:center;justify-content:center">
+<div class="text-center">
+<div class="spinner-border text-primary" style="width:3rem;height:3rem"></div>
+<p class="mt-3 text-muted">Caricamento...</p>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<script src="app.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js', { scope: './' }).catch(function(err) {
+      console.warn('[PWA] Errore SW:', err);
+    });
+  });
+}
+</script>
+</body>
+</html>
