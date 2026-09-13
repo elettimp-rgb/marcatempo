@@ -102,7 +102,10 @@ self.addEventListener('fetch', function(event) {
 // PUSH NOTIFICATIONS
 // ============================================================
 self.addEventListener('push', function(event) {
-  console.log('[SW] Push ricevuto');
+  console.log('[SW] =================================');
+  console.log('[SW] PUSH RICEVUTO!', new Date().toISOString());
+  console.log('[SW] event.data:', event.data ? event.data.text() : 'nessun dato');
+  console.log('[SW] =================================');
 
   var data = { title: 'Marcatempo', body: 'Nuovo messaggio' };
   try {
