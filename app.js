@@ -488,60 +488,152 @@ if (PAGE === 'collaboratore.html') {
   })();
 }
 
-// ============================================================
-// EXPORT CSV
-// ============================================================
-window.esportaCSV = function(context) {
-  var rows = [];
-  var headers, mese, filename;
-  
-  if (context === 'admin') {
-    var trs = document.querySelectorAll('#timbratureAdminList tr');
-    trs.forEach(function(tr) {
-      var tds = tr.querySelectorAll('td');
-      if (tds.length < 11) return;
-      rows.push([tds[0].textContent.trim(), tds[1].textContent.trim(), tds[2].textContent.trim(), tds[3].textContent.trim(), tds[4].textContent.trim(), tds[5].textContent.trim(), tds[6].textContent.trim(), tds[7].textContent.trim(), tds[8].textContent.trim(), tds[9].textContent.trim()]);
-    });
-    headers = ['Data', 'Utente', 'Commessa', 'Ordinarie', 'Straordinarie', 'Viaggio', 'Totale', 'Ferie', 'Malattia', 'Note'];
-    mese = $('filtroMeseAdmin').value || new Date().toISOString().slice(0,7);
-    filename = 'timbrature-admin-' + mese + '.csv';
-  } else {
-    var trs = document.querySelectorAll('#timbratureList tr');
-    trs.forEach(function(tr) {
-      var tds = tr.querySelectorAll('td');
-      if (tds.length < 11) return;
-      rows.push([tds[0].textContent.trim(), tds[1].textContent.trim(), tds[2].textContent.trim(), tds[3].textContent.trim(), tds[4].textContent.trim(), tds[5].textContent.trim(), tds[6].textContent.trim(), tds[7].textContent.trim(), tds[8].textContent.trim(), tds[9].textContent.trim()]);
-    });
-    headers = ['Data', 'Commessa', 'Cliente', 'Ordinarie', 'Straordinarie', 'Viaggio', 'Totale', 'Ferie', 'Malattia', 'Note'];
-    mese = $('filtroMese').value || new Date().toISOString().slice(0,7);
-    var nomeUtente = (APP.user.nome || APP.user.username || 'utente').replace(/\s+/g, '-').toLowerCase();
-    filename = 'timbrature-' + nomeUtente + '-' + mese + '.csv';
-  }
-  
-  if (rows.length === 0) { alert('Nessun dato da esportare.'); return; }
-  
-  var csv = '';
-  csv += headers.map(escapeCsvField).join(',') + '\n';
-  rows.forEach(function(row) {
-    csv += row.map(escapeCsvField).join(',') + '\n';
-  });
-  
-  var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
 
-function escapeCsvField(field) {
-  if (field === null || field === undefined) return '';
-  var s = String(field);
-  if (s.indexOf(',') !== -1 || s.indexOf('"') !== -1 || s.indexOf('\n') !== -1) {
-    return '"' + s.replace(/"/g, '""') + '"';
+// ============================================================
+// ESPORTAZIONE EXCEL (.xlsx)
+// ============================================================
+window.esportaExcel = function(context) {
+  // Verifica che SheetJS sia caricato
+  if (typeof XLSX === 'undefined') {
+    alert('Errore: libreria Excel non caricata. Ricarica la pagina.');
+    return;
   }
-  return s;
-}
+
+  // Leggi i dati dalla tabella HTML
+  var data = [];
+  var headers = [];
+  var mese, filename, sheetName;
+
+  if (context === 'admin') {
+    var tbody = document.getElementById('timbratureAdminList');
+    if (!tbody) return;
+
+    // Intestazioni
+    headers = ['Data', 'Utente', 'Commessa', 'Ordinarie', 'Straordinarie', 'Viaggio', 'Totale', 'Ferie', 'Malattia', 'Note'];
+
+    // Righe
+    var trs = tbody.querySelectorAll('tr');
+    trs.forEach(function(tr) {
+      var tds = tr.querySelectorAll('td');
+      if (tds.length < 11) return; // salta riga "caricamento" o "nessuna"
+      data.push([
+        tds[0].textContent.trim(),
+        tds[1].textContent.trim(),
+        tds[2].textContent.trim(),
+        parseFloat(tds[3].textContent.trim()) || 0,
+        parseFloat(tds[4].textContent.trim()) || 0,
+        parseFloat(tds[5].textContent.trim()) || 0,
+        parseFloat(tds[6].textContent.trim()) || 0,
+        tds[7].textContent.trim(),
+        tds[8].textContent.trim(),
+        tds[9].textContent.trim()
+      ]);
+    });
+
+    mese = document.getElementById('filtroMeseAdmin').value || new Date().toISOString().slice(0,7);
+    filename = 'timbrature-admin-' + mese + '.xlsx';
+    sheetName = 'Timbrature';
+
+  } else {
+    var tbody = document.getElementById('timbratureList');
+    if (!tbody) return;
+
+    headers = ['Data', 'Commessa', 'Cliente', 'Ordinarie', 'Straordinarie', 'Viaggio', 'Totale', 'Ferie', 'Malattia', 'Note'];
+
+    var trs = tbody.querySelectorAll('tr');
+    trs.forEach(function(tr) {
+      var tds = tr.querySelectorAll('td');
+      if (tds.length < 11) return;
+      data.push([
+        tds[0].textContent.trim(),
+        tds[1].textContent.trim(),
+        tds[2].textContent.trim(),
+        parseFloat(tds[3].textContent.trim()) || 0,
+        parseFloat(tds[4].textContent.trim()) || 0,
+        parseFloat(tds[5].textContent.trim()) || 0,
+        parseFloat(tds[6].textContent.trim()) || 0,
+        tds[7].textContent.trim(),
+        tds[8].textContent.trim(),
+        tds[9].textContent.trim()
+      ]);
+    });
+
+    mese = document.getElementById('filtroMese').value || new Date().toISOString().slice(0,7);
+    var nomeUtente = (APP.user.nome || APP.user.username || 'utente').replace(/\s+/g, '-').toLowerCase();
+    filename = 'timbrature-' + nomeUtente + '-' + mese + '.xlsx';
+    sheetName = 'Le mie timbrature';
+  }
+
+  if (data.length === 0) {
+    alert('Nessun dato da esportare.');
+    return;
+  }
+
+  // Crea il foglio di lavoro con intestazioni + dati
+  var wsData = [headers].concat(data);
+  var ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Larghezza colonne (in caratteri)
+  ws['!cols'] = [
+    { wch: 12 },  // Data
+    { wch: 20 },  // Utente / Commessa
+    { wch: 20 },  // Commessa / Cliente
+    { wch: 10 },  // Ordinarie
+    { wch: 14 },  // Straordinarie
+    { wch: 10 },  // Viaggio
+    { wch: 10 },  // Totale
+    { wch: 8 },   // Ferie
+    { wch: 8 },   // Malattia
+    { wch: 40 }   // Note
+  ];
+
+  // Applica stile all'intestazione (bold + sfondo)
+  var range = XLSX.utils.decode_range(ws['!ref']);
+  for (var C = range.s.c; C <= range.e.c; ++C) {
+    var addr = XLSX.utils.encode_cell({ r: 0, c: C });
+    if (!ws[addr]) continue;
+    ws[addr].s = {
+      font: { bold: true, color: { rgb: 'FFFFFFFF' } },
+      fill: { fgColor: { rgb: 'FF4361EE' } },
+      alignment: { horizontal: 'center', vertical: 'center' }
+    };
+  }
+
+  // Crea il workbook con un foglio
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+  // Aggiungi un secondo foglio con i totali
+  var totaleOrd = 0, totaleStr = 0, totaleViag = 0, totaleTot = 0;
+  data.forEach(function(row) {
+    totaleOrd  += row[3];
+    totaleStr  += row[4];
+    totaleViag += row[5];
+    totaleTot  += row[6];
+  });
+
+  var riepilogoData = [
+    ['Riepilogo', ''],
+    ['Periodo', mese],
+    ['Totale righe', data.length],
+    ['', ''],
+    ['Ore ordinarie', totaleOrd],
+    ['Ore straordinarie', totaleStr],
+    ['Ore viaggio', totaleViag],
+    ['', ''],
+    ['TOTALE ORE', totaleTot]
+  ];
+  var ws2 = XLSX.utils.aoa_to_sheet(riepilogoData);
+  ws2['!cols'] = [{ wch: 22 }, { wch: 15 }];
+
+  // Bold sui primi titoli
+  ['A1', 'A5', 'A6', 'A7', 'A9'].forEach(function(addr) {
+    if (ws2[addr]) ws2[addr].s = { font: { bold: true } };
+  });
+  if (ws2['B9']) ws2['B9'].s = { font: { bold: true, color: { rgb: 'FF4361EE' } } };
+
+  XLSX.utils.book_append_sheet(wb, ws2, 'Riepilogo');
+
+  // Genera e scarica il file
+  XLSX.writeFile(wb, filename);
+};
