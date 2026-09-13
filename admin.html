@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - Marcatempo</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="viewAdmin" class="hidden">
+<nav class="navbar navbar-dark bg-primary shadow-sm">
+<div class="container-fluid">
+<span class="navbar-brand"><i class="bi bi-clock-history me-2"></i>Marcatempo — Admin</span>
+<div class="d-flex align-items-center">
+<span class="text-white me-3 small">
+<i class="bi bi-person-circle"></i> <span id="adminUserName">—</span>
+<span class="badge bg-danger ms-1">admin</span>
+</span>
+<button class="btn btn-outline-light btn-sm" onclick="doLogout()"><i class="bi bi-box-arrow-right"></i> Esci</button>
+</div>
+</div>
+</nav>
+
+<div class="container-fluid mt-4 px-4">
+<div id="adminMessage" class="alert d-none"></div>
+
+<ul class="nav nav-tabs mb-3">
+<li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabCommesse"><i class="bi bi-briefcase me-1"></i>Commesse</a></li>
+<li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabTimbrature"><i class="bi bi-clock me-1"></i>Timbrature</a></li>
+<li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabUtenti"><i class="bi bi-people me-1"></i>Utenti</a></li>
+<li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabAssegnazioni"><i class="bi bi-link-45deg me-1"></i>Assegnazioni</a></li>
+</ul>
+
+<div class="tab-content">
+
+<div class="tab-pane fade show active" id="tabCommesse">
+<div class="card mb-4">
+<div class="card-header bg-success text-white"><i class="bi bi-plus-circle me-1"></i>Nuova Commessa</div>
+<div class="card-body">
+<form id="commessaForm" class="row g-2">
+<div class="col-md-3"><input type="text" name="numero_commessa" class="form-control" placeholder="Numero" required></div>
+<div class="col-md-3"><input type="text" name="cliente" class="form-control" placeholder="Cliente" required></div>
+<div class="col-md-3"><input type="text" name="cantiere" class="form-control" placeholder="Cantiere" required></div>
+<div class="col-md-3"><input type="text" name="descrizione" class="form-control" placeholder="Descrizione"></div>
+<div class="col-12"><button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Aggiungi Commessa</button></div>
+</form>
+</div>
+</div>
+<div class="card">
+<div class="card-header bg-light">Elenco Commesse</div>
+<div class="card-body p-0">
+<div class="table-responsive">
+<table class="table table-hover mb-0 align-middle">
+<thead class="table-light"><tr><th>ID</th><th>Numero</th><th>Cliente</th><th>Cantiere</th><th></th></tr></thead>
+<tbody id="commesseList"><tr><td colspan="5" class="text-center text-muted py-3">Caricamento...</td></tr></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<div class="tab-pane fade" id="tabTimbrature">
+<div class="card">
+<div class="card-header bg-light d-flex justify-content-between align-items-center">
+<span><i class="bi bi-list-ul me-1"></i>Elenco Timbrature</span>
+<div class="d-flex gap-2 align-items-center">
+<input type="month" id="filtroMeseAdmin" class="form-control form-control-sm w-auto">
+<button class="btn btn-sm btn-outline-success" onclick="esportaCSV('admin')"><i class="bi bi-file-earmark-arrow-down"></i> Esporta CSV</button>
+</div>
+</div>
+<div class="card-body p-0">
+<div class="table-responsive">
+<table class="table table-hover mb-0 align-middle">
+<thead class="table-light"><tr><th>Data</th><th>Utente</th><th>Commessa</th><th>Ord</th><th>Str</th><th>Viag</th><th>Tot</th><th>Ferie</th><th>Malattia</th><th>Note</th><th></th></tr></thead>
+<tbody id="timbratureAdminList"><tr><td colspan="11" class="text-center text-muted py-3">Caricamento...</td></tr></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<div class="tab-pane fade" id="tabUtenti">
+<div class="card mb-4">
+<div class="card-header bg-success text-white"><i class="bi bi-person-plus me-1"></i>Nuovo Utente</div>
+<div class="card-body">
+<form id="utenteForm" class="row g-2">
+<div class="col-md-3"><input type="text" name="username" class="form-control" placeholder="Username" required></div>
+<div class="col-md-3"><input type="text" name="nome_completo" class="form-control" placeholder="Nome completo" required></div>
+<div class="col-md-2"><input type="password" name="password" class="form-control" placeholder="Password" required></div>
+<div class="col-md-2"><input type="email" name="email" class="form-control" placeholder="Email"></div>
+<div class="col-md-2"><select name="ruolo" class="form-select"><option value="collaboratore">Collaboratore</option><option value="admin">Admin</option></select></div>
+<div class="col-12"><button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Crea Utente</button></div>
+</form>
+</div>
+</div>
+<div class="card">
+<div class="card-header bg-light">Elenco Utenti</div>
+<div class="card-body p-0">
+<div class="table-responsive">
+<table class="table table-hover mb-0 align-middle">
+<thead class="table-light"><tr><th>ID</th><th>Username</th><th>Nome</th><th>Ruolo</th><th></th></tr></thead>
+<tbody id="utentiList"><tr><td colspan="5" class="text-center text-muted py-3">Caricamento...</td></tr></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<div class="tab-pane fade" id="tabAssegnazioni">
+<div class="card">
+<div class="card-header bg-light"><i class="bi bi-link-45deg me-1"></i>Assegna commesse ai collaboratori</div>
+<div class="card-body">
+<p class="text-muted small mb-3">Seleziona un collaboratore per assegnargli le commesse. Il collaboratore vedrà <b>solo</b> le commesse assegnate.</p>
+<div class="row g-3">
+<div class="col-md-4">
+<label class="form-label fw-semibold">Collaboratore</label>
+<select id="assegnazioneCollaboratore" class="form-select"><option value="">Seleziona collaboratore...</option></select>
+</div>
+</div>
+<div id="assegnazioneBox" class="mt-4 hidden">
+<h6 class="mb-3">Commesse assegnate a <span id="assegnazioneNome" class="text-primary"></span></h6>
+<div id="assegnazioneCommesseList" class="row g-2"></div>
+<div class="mt-3"><button class="btn btn-primary" onclick="salvaAssegnazioni()"><i class="bi bi-save me-1"></i>Salva assegnazioni</button></div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+
+<div id="viewLoading" style="min-height:100vh;display:flex;align-items:center;justify-content:center">
+<div class="text-center">
+<div class="spinner-border text-primary" style="width:3rem;height:3rem"></div>
+<p class="mt-3 text-muted">Caricamento...</p>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
