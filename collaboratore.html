@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Collaboratore - Marcatempo</title>
-
+<div class="card mb-3" id="cardNotifiche">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4361ee">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -36,22 +36,10 @@
 <div id="collabMessage" class="alert d-none"></div>
 
   
-<div class="card mb-3" id="cardNotifiche">
-<div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
-<div>
-<strong><i class="bi bi-bell-fill me-1"></i>Notifiche push</strong>
-<div class="text-muted small" id="statoNotifiche">Verifica stato...</div>
-</div>
-<div>
-<button class="btn btn-sm btn-primary" id="btnAttivaNotifiche" onclick="onAttivaNotifiche()" style="display:none">
-<i class="bi bi-bell me-1"></i> Attiva notifiche
-</button>
-<button class="btn btn-sm btn-outline-secondary" id="btnDisattivaNotifiche" onclick="onDisattivaNotifiche()" style="display:none">
-<i class="bi bi-bell-slash me-1"></i> Disattiva
-</button>
-</div>
-</div>
-</div>
+
+
+
+  
 
 <div class="row g-3 mb-4">
 <div class="col-md-3 col-6"><div class="card stat-card bg-primary"><div class="card-body text-center"><h6>Ordinarie</h6><h3 id="oreOrd">0</h3></div></div></div>
@@ -161,64 +149,6 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
- <script>
-async function aggiornaStatoNotifiche() {
-  var stato = await getStatoNotifiche();
-  var elStato = document.getElementById('statoNotifiche');
-  var btnAtt = document.getElementById('btnAttivaNotifiche');
-  var btnDis = document.getElementById('btnDisattivaNotifiche');
 
-  if (!elStato) return;
-
-  if (!stato.supportato) {
-    elStato.textContent = stato.motivo || 'Non supportate';
-    if (btnAtt) btnAtt.style.display = 'none';
-    if (btnDis) btnDis.style.display = 'none';
-    return;
-  }
-
-  if (stato.attivo) {
-    elStato.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i> Attive su questo dispositivo';
-    if (btnAtt) btnAtt.style.display = 'none';
-    if (btnDis) btnDis.style.display = 'inline-block';
-  } else {
-    elStato.textContent = 'Non attive su questo dispositivo';
-    if (btnAtt) btnAtt.style.display = 'inline-block';
-    if (btnDis) btnDis.style.display = 'none';
-  }
-}
-
-async function onAttivaNotifiche() {
-  var btn = document.getElementById('btnAttivaNotifiche');
-  var orig = btn.innerHTML;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Attivazione...';
-  btn.disabled = true;
-
-  var res = await attivaNotifichePush(APP.user.id);
-
-  btn.innerHTML = orig;
-  btn.disabled = false;
-
-  if (res.success) {
-    await aggiornaStatoNotifiche();
-  } else {
-    alert('Errore: ' + res.error);
-  }
-}
-
-async function onDisattivaNotifiche() {
-  var res = await disattivaNotifichePush();
-  if (res.success) {
-    await aggiornaStatoNotifiche();
-  } else {
-    alert('Errore: ' + res.error);
-  }
-}
-
-// Quando la pagina è pronta
-window.addEventListener('load', function() {
-  setTimeout(aggiornaStatoNotifiche, 1000);
-});
-</script> 
 </body>
 </html>
