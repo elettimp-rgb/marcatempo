@@ -4,7 +4,7 @@
 const API_URL = 'https://marcatempo-api.elettimp.workers.dev';
 
 // ⚠️ SOSTITUISCI CON IL TUO ONESIGNAL APP ID
-const ONESIGNAL_APP_ID = 'INCOLLA_QUI_IL_TUO_ONESIGNAL_APP_ID';
+const ONESIGNAL_APP_ID = '1ae7baa4-4d0e-41f1-a496-24809ee00723';
 
 // ============================================================
 // INIZIALIZZAZIONE ONESIGNAL
